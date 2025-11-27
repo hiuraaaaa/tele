@@ -1,222 +1,231 @@
-// app/settings/page.jsx
 "use client";
 
 import { useEffect, useState } from "react";
 
+// --- Main Component ---
 export default function SettingsPage() {
   const [settings, setSettings] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  async function load() {
+  // Mengambil data settings
+  async function fetchSettings() {
     try {
       const res = await fetch("/api/settings");
       const data = await res.json();
       setSettings(data);
     } catch (err) {
-      console.error("Gagal load settings:", err);
+      console.error("Failed to load settings:", err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }
 
+  // Initial Load
   useEffect(() => {
-    load();
+    fetchSettings();
+    injectSpinnerStyle(); // Inject CSS for spinner globally
   }, []);
 
-  async function handleSave(e) {
+  // Handler: Simpan Pengaturan
+  async function onSave(e) {
     e.preventDefault();
-    setSaving(true);
+    setIsSaving(true);
     try {
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-      alert("Pengaturan disimpan.");
-    } catch (e) {
-      alert("Gagal menyimpan: " + e.message);
+      alert("Pengaturan berhasil disimpan.");
+    } catch (error) {
+      alert("Gagal menyimpan: " + error.message);
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   }
 
-  async function handleReset() {
-    if (!confirm("Reset semua pengaturan ke default?")) return;
-    setResetting(true);
+  // Handler: Reset Pengaturan
+  async function onReset() {
+    if (!confirm("Apakah Anda yakin ingin mereset semua pengaturan ke default?")) return;
+    
+    setIsResetting(true);
     try {
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reset: true }),
       });
-      await load();
-    } catch (e) {
-      alert("Gagal reset: " + e.message);
+      await fetchSettings(); // Reload data setelah reset
+      alert("Pengaturan telah direset.");
+    } catch (error) {
+      alert("Gagal reset: " + error.message);
     } finally {
-      setResetting(false);
+      setIsResetting(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner} />
-        <p style={styles.loadingText}>Memuat pengaturan…</p>
-      </div>
-    );
-  }
+  // --- Render States ---
 
-  if (!settings) {
-    return (
-      <div style={styles.errorContainer}>
-        <p style={styles.errorText}>
-          Gagal memuat data pengaturan. Coba refresh halaman.
-        </p>
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingState />;
+  if (!settings) return <ErrorState />;
 
   return (
     <div style={styles.container}>
-      {/* Breadcrumb */}
-      <nav style={styles.breadcrumb}>
-        Home / <span style={styles.breadcrumbActive}>Bot Settings</span>
-      </nav>
+      <Breadcrumb />
+      
+      <Header 
+        title="Bot Settings" 
+        subtitle="Kelola identitas bot, prefix command, dan pesan otomatis yang akan dipakai langsung oleh bot di Pterodactyl."
+      />
 
-      {/* Header */}
-      <header style={styles.header}>
-        <h1 style={styles.title}>Bot Settings</h1>
-        <p style={styles.subtitle}>
-          Kelola identitas bot, prefix command, dan pesan otomatis yang akan
-          dipakai langsung oleh bot di Pterodactyl.
-        </p>
-      </header>
+      <SettingsForm 
+        settings={settings} 
+        setSettings={setSettings} 
+        onSave={onSave}
+        onReset={onReset}
+        isSaving={isSaving}
+        isResetting={isResetting}
+      />
 
-      {/* FORM CARD */}
-      <section style={styles.card}>
-        <h2 style={styles.cardTitle}>Konfigurasi Utama</h2>
-        <p style={styles.cardDesc}>
-          Ubah nama bot, prefix command, dan pesan bawaan yang akan dibaca
-          oleh bot melalui endpoint{" "}
-          <code style={styles.code}>/api/settings</code>.
-        </p>
-
-        {/* Bot name + prefix, responsif (auto wrap) */}
-        <div style={styles.fieldsRow}>
-          <div style={styles.fieldCol}>
-            <Field
-              label="Bot Name"
-              value={settings.botName}
-              onChange={(v) => setSettings({ ...settings, botName: v })}
-              placeholder="Stella Bot"
-              help="Nama ini akan muncul di pesan sambutan / informasi bot."
-            />
-          </div>
-          <div style={styles.fieldColNarrow}>
-            <Field
-              label="Prefix"
-              value={settings.prefix}
-              maxLength={3}
-              onChange={(v) => setSettings({ ...settings, prefix: v })}
-              placeholder="!"
-              help="Contoh: !, ?, . — dipakai di depan command (mis. !ping)."
-            />
-          </div>
-        </div>
-
-        <Field
-          label="Welcome Message"
-          textarea
-          value={settings.welcomeMessage}
-          onChange={(v) =>
-            setSettings({ ...settings, welcomeMessage: v })
-          }
-          placeholder="Halo, aku Stella Bot. Siap membantu ✨"
-        />
-
-        <Field
-          label="Auto Reply Message"
-          textarea
-          value={settings.autoReply}
-          onChange={(v) => setSettings({ ...settings, autoReply: v })}
-          placeholder="Terima kasih, pesanmu sudah diterima."
-          help="Pesan default ketika command tidak dikenali atau sedang maintenance."
-        />
-
-        <div style={styles.actionsRow}>
-          <button
-            type="submit"
-            onClick={handleSave}
-            disabled={saving}
-            style={styles.btnPrimary}
-          >
-            {saving ? "Menyimpan…" : "Simpan Pengaturan"}
-          </button>
-          <button
-            type="button"
-            disabled={resetting}
-            onClick={handleReset}
-            style={styles.btnDanger}
-          >
-            {resetting ? "Mereset…" : "Reset ke Default"}
-          </button>
-        </div>
-      </section>
-
-      {/* PREVIEW CARD */}
-      <section style={styles.previewCard}>
-        <h2 style={styles.previewTitle}>Preview Respon Bot</h2>
-        <p style={styles.previewDesc}>
-          Gambaran singkat bagaimana user akan melihat bot dengan
-          pengaturan saat ini.
-        </p>
-
-        <div style={styles.previewBlock}>
-          <span style={styles.previewLabel}>/start</span>
-          <div style={styles.previewBubble}>
-            <p style={styles.previewBubbleTitle}>
-              {settings.botName || "Stella Bot"}
-            </p>
-            <p style={styles.previewBubbleText}>
-              {settings.welcomeMessage ||
-                "Halo, aku Stella Bot. Siap membantu ✨"}
-            </p>
-            <p style={styles.previewHint}>
-              Prefix aktif:{" "}
-              <code style={styles.previewCode}>
-                {settings.prefix || "!"}
-              </code>
-            </p>
-          </div>
-        </div>
-
-        <div style={styles.previewBlock}>
-          <span style={styles.previewLabel}>
-            Pesan tanpa command yang cocok
-          </span>
-          <div style={styles.previewBubbleSecondary}>
-            <p style={styles.previewBubbleText}>
-              {settings.autoReply ||
-                "Terima kasih, pesannya sudah diterima."}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PreviewSection settings={settings} />
     </div>
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  textarea,
-  help,
-  maxLength,
-  placeholder,
-}) {
+// --- Sub-Components (UI Parts) ---
+
+function Breadcrumb() {
+  return (
+    <nav style={styles.breadcrumb}>
+      Home / <span style={styles.breadcrumbActive}>Bot Settings</span>
+    </nav>
+  );
+}
+
+function Header({ title, subtitle }) {
+  return (
+    <header style={styles.header}>
+      <h1 style={styles.title}>{title}</h1>
+      <p style={styles.subtitle}>{subtitle}</p>
+    </header>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div style={styles.loadingContainer}>
+      <div style={styles.spinner} />
+      <p style={styles.loadingText}>Memuat pengaturan…</p>
+    </div>
+  );
+}
+
+function ErrorState() {
+  return (
+    <div style={styles.errorContainer}>
+      <p style={styles.errorText}>
+        Gagal memuat data pengaturan. Silakan refresh halaman.
+      </p>
+    </div>
+  );
+}
+
+function SettingsForm({ settings, setSettings, onSave, onReset, isSaving, isResetting }) {
+  const handleChange = (field, value) => {
+    setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <section style={styles.card}>
+      <div style={styles.cardHeader}>
+        <h2 style={styles.cardTitle}>Konfigurasi Utama</h2>
+        <p style={styles.cardDesc}>
+          Ubah nama bot, prefix command, dan pesan bawaan yang akan dibaca oleh bot melalui endpoint <code style={styles.code}>/api/settings</code>.
+        </p>
+      </div>
+
+      <div style={styles.fieldsRow}>
+        <div style={styles.fieldCol}>
+          <InputField
+            label="Bot Name"
+            value={settings.botName}
+            onChange={(val) => handleChange("botName", val)}
+            placeholder="Stella Bot"
+            helpText="Nama ini akan muncul di pesan sambutan / informasi bot."
+          />
+        </div>
+        <div style={styles.fieldColNarrow}>
+          <InputField
+            label="Prefix"
+            value={settings.prefix}
+            maxLength={3}
+            onChange={(val) => handleChange("prefix", val)}
+            placeholder="!"
+            helpText="Contoh: !, ?, ."
+          />
+        </div>
+      </div>
+
+      <InputField
+        label="Welcome Message"
+        textarea
+        value={settings.welcomeMessage}
+        onChange={(val) => handleChange("welcomeMessage", val)}
+        placeholder="Halo, aku Stella Bot. Siap membantu ✨"
+      />
+
+      <InputField
+        label="Auto Reply Message"
+        textarea
+        value={settings.autoReply}
+        onChange={(val) => handleChange("autoReply", val)}
+        placeholder="Terima kasih, pesanmu sudah diterima."
+        helpText="Pesan default ketika command tidak dikenali atau sedang maintenance."
+      />
+
+      <div style={styles.actionsRow}>
+        <button onClick={onSave} disabled={isSaving} style={styles.btnPrimary}>
+          {isSaving ? "Menyimpan…" : "Simpan Pengaturan"}
+        </button>
+        <button onClick={onReset} disabled={isResetting} style={styles.btnDanger}>
+          {isResetting ? "Mereset…" : "Reset ke Default"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function PreviewSection({ settings }) {
+  return (
+    <section style={styles.previewCard}>
+      <h2 style={styles.previewTitle}>Preview Respon Bot</h2>
+      <p style={styles.previewDesc}>Gambaran singkat bagaimana user akan melihat bot dengan pengaturan saat ini.</p>
+
+      <div style={styles.previewBlock}>
+        <span style={styles.previewLabel}>/start</span>
+        <div style={styles.previewBubble}>
+          <p style={styles.previewBubbleTitle}>{settings.botName || "Stella Bot"}</p>
+          <p style={styles.previewBubbleText}>{settings.welcomeMessage || "Halo, aku Stella Bot. Siap membantu ✨"}</p>
+          <p style={styles.previewHint}>
+            Prefix aktif: <code style={styles.previewCode}>{settings.prefix || "!"}</code>
+          </p>
+        </div>
+      </div>
+
+      <div style={styles.previewBlock}>
+        <span style={styles.previewLabel}>Pesan tanpa command</span>
+        <div style={styles.previewBubbleSecondary}>
+          <p style={styles.previewBubbleText}>{settings.autoReply || "Terima kasih, pesannya sudah diterima."}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Reusable Input Component
+function InputField({ label, value, onChange, textarea, helpText, maxLength, placeholder }) {
   return (
     <div style={styles.fieldWrapper}>
       <label style={styles.fieldLabel}>{label}</label>
@@ -238,255 +247,148 @@ function Field({
           style={styles.input}
         />
       )}
-      {help && <div style={styles.fieldHelp}>{help}</div>}
+      {helpText && <div style={styles.fieldHelp}>{helpText}</div>}
     </div>
   );
 }
 
+// Helper: Inject Keyframes for Spinner (Clean approach)
+function injectSpinnerStyle() {
+  if (typeof document !== "undefined" && !document.getElementById("spinner-style")) {
+    const style = document.createElement("style");
+    style.id = "spinner-style";
+    style.textContent = `
+      @keyframes spin { to { transform: rotate(360deg); } }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+// --- Styles Object ---
 const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: 20,
+    gap: "1.5rem",
     maxWidth: "100%",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   },
-
-  // loading / error
+  
+  // States
   loadingContainer: {
-    minHeight: 260,
+    minHeight: "300px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: "1rem",
   },
   spinner: {
-    width: 36,
-    height: 36,
+    width: "36px",
+    height: "36px",
     borderRadius: "50%",
     border: "3px solid #e5e7eb",
     borderTopColor: "#3b82f6",
     animation: "spin 0.8s linear infinite",
   },
-  loadingText: {
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  errorContainer: {
-    padding: 32,
-    textAlign: "center",
-  },
-  errorText: {
-    fontSize: 14,
-    color: "#ef4444",
-  },
+  loadingText: { fontSize: "14px", color: "#6b7280" },
+  errorContainer: { padding: "2rem", textAlign: "center" },
+  errorText: { fontSize: "14px", color: "#ef4444" },
 
-  // breadcrumb & header
-  breadcrumb: {
-    fontSize: 13,
-    color: "#9ca3af",
-  },
-  breadcrumbActive: {
-    color: "#4b5563",
-    fontWeight: 500,
-  },
-  header: {
-    marginTop: 4,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 700,
-    color: "#111827",
-    margin: 0,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
-    lineHeight: 1.6,
-    margin: 0,
-  },
+  // Header & Nav
+  breadcrumb: { fontSize: "13px", color: "#9ca3af" },
+  breadcrumbActive: { color: "#4b5563", fontWeight: 500 },
+  header: { marginTop: "0.25rem" },
+  title: { fontSize: "26px", fontWeight: 700, color: "#111827", margin: "0 0 0.5rem 0" },
+  subtitle: { fontSize: "14px", color: "#6b7280", lineHeight: 1.6, margin: 0 },
 
-  // cards
+  // Cards
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 16,
+    borderRadius: "16px",
     border: "1px solid #e5e7eb",
-    padding: 20,
-    boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
+    padding: "1.5rem",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: "#111827",
-    margin: 0,
-    marginBottom: 4,
-  },
-  cardDesc: {
-    fontSize: 13,
-    color: "#6b7280",
-    margin: 0,
-    marginBottom: 16,
-  },
+  cardHeader: { marginBottom: "1.5rem" },
+  cardTitle: { fontSize: "16px", fontWeight: 600, color: "#111827", margin: "0 0 0.25rem 0" },
+  cardDesc: { fontSize: "13px", color: "#6b7280", margin: 0 },
 
-  // responsive row untuk Bot Name + Prefix
-  fieldsRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 8,
-  },
-  fieldCol: {
-    flex: "1 1 180px",
-  },
-  fieldColNarrow: {
-    flex: "0 0 140px",
-  },
+  // Layouts
+  fieldsRow: { display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "0.5rem" },
+  fieldCol: { flex: "1 1 200px" },
+  fieldColNarrow: { flex: "0 0 120px" },
 
-  fieldWrapper: {
-    marginBottom: 12,
-  },
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#111827",
-    marginBottom: 4,
-    display: "block",
-  },
+  // Inputs
+  fieldWrapper: { marginBottom: "1rem" },
+  fieldLabel: { fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" },
   input: {
     display: "block",
     width: "100%",
-    padding: "0.65rem 0.8rem",
-    borderRadius: 10,
-    border: "1px solid #e5e7eb",
+    padding: "0.75rem",
+    borderRadius: "0.5rem",
+    border: "1px solid #d1d5db",
     backgroundColor: "#f9fafb",
-    fontSize: 14,
+    fontSize: "14px",
     color: "#111827",
     outline: "none",
+    transition: "border-color 0.15s ease-in-out",
   },
-  textarea: {
-    resize: "vertical",
-    minHeight: 80,
-  },
-  fieldHelp: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#9ca3af",
-  },
+  textarea: { resize: "vertical", minHeight: "100px", fontFamily: "inherit" },
+  fieldHelp: { marginTop: "0.25rem", fontSize: "12px", color: "#9ca3af" },
 
-  actionsRow: {
-    marginTop: 16,
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-  },
+  // Actions
+  actionsRow: { marginTop: "1.5rem", display: "flex", gap: "1rem" },
   btnPrimary: {
-    padding: "0.7rem 1.5rem",
-    borderRadius: 999,
+    padding: "0.75rem 1.5rem",
+    borderRadius: "9999px",
     border: "none",
-    background: "linear-gradient(135deg,#22c55e,#3b82f6)",
+    background: "linear-gradient(135deg, #22c55e, #3b82f6)",
     color: "#ffffff",
     fontWeight: 600,
-    fontSize: 14,
+    fontSize: "14px",
     cursor: "pointer",
+    transition: "opacity 0.2s",
   },
   btnDanger: {
-    padding: "0.7rem 1.3rem",
-    borderRadius: 999,
+    padding: "0.75rem 1.5rem",
+    borderRadius: "9999px",
     border: "1px solid #fecaca",
     backgroundColor: "#fef2f2",
     color: "#b91c1c",
     fontWeight: 500,
-    fontSize: 14,
+    fontSize: "14px",
     cursor: "pointer",
   },
 
-  code: {
-    backgroundColor: "#f3f4f6",
-    padding: "2px 6px",
-    borderRadius: 4,
-    fontSize: 12,
-    fontFamily: "monospace",
-  },
-
-  // preview card
+  // Preview
   previewCard: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 16,
-    border: "1px solid #e5e7eb",
-    padding: 18,
-    boxShadow: "0 8px 25px rgba(15,23,42,0.04)",
+    backgroundColor: "#f8fafc",
+    borderRadius: "16px",
+    border: "1px dashed #cbd5e1",
+    padding: "1.5rem",
   },
-  previewTitle: {
-    fontSize: 15,
-    fontWeight: 600,
-    color: "#111827",
-    margin: 0,
-    marginBottom: 4,
-  },
-  previewDesc: {
-    fontSize: 13,
-    color: "#6b7280",
-    margin: 0,
-    marginBottom: 14,
-  },
-  previewBlock: {
-    marginBottom: 14,
-  },
-  previewLabel: {
-    fontSize: 12,
-    color: "#9ca3af",
-    marginBottom: 4,
-    display: "block",
-  },
+  previewTitle: { fontSize: "15px", fontWeight: 600, color: "#111827", margin: "0 0 0.25rem 0" },
+  previewDesc: { fontSize: "13px", color: "#6b7280", margin: "0 0 1rem 0" },
+  previewBlock: { marginBottom: "1rem" },
+  previewLabel: { fontSize: "12px", color: "#64748b", marginBottom: "0.5rem", display: "block", fontWeight: 500 },
   previewBubble: {
     backgroundColor: "#ffffff",
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    padding: 10,
+    borderRadius: "12px",
+    border: "1px solid #e2e8f0",
+    padding: "1rem",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
   },
   previewBubbleSecondary: {
     backgroundColor: "#eff6ff",
-    borderRadius: 12,
-    border: "1px solid #dbeafe",
-    padding: 10,
+    borderRadius: "12px",
+    border: "1px solid #bfdbfe",
+    padding: "1rem",
   },
-  previewBubbleTitle: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#111827",
-    margin: 0,
-    marginBottom: 2,
-  },
-  previewBubbleText: {
-    fontSize: 13,
-    color: "#4b5563",
-    margin: 0,
-    marginBottom: 4,
-  },
-  previewHint: {
-    fontSize: 12,
-    color: "#9ca3af",
-    margin: 0,
-  },
-  previewCode: {
-    backgroundColor: "#f3f4f6",
-    padding: "1px 5px",
-    borderRadius: 4,
-    fontSize: 12,
-  },
+  previewBubbleTitle: { fontSize: "13px", fontWeight: 700, color: "#1e293b", margin: "0 0 0.25rem 0" },
+  previewBubbleText: { fontSize: "13px", color: "#334155", margin: "0 0 0.5rem 0", lineHeight: 1.5 },
+  previewHint: { fontSize: "11px", color: "#94a3b8", margin: 0 },
+  previewCode: { backgroundColor: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", fontFamily: "monospace" },
+  code: { backgroundColor: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontFamily: "monospace" },
 };
 
-// keyframes buat spinner
-if (typeof document !== "undefined") {
-  if (!document.querySelector("style[data-settings-spin]")) {
-    const el = document.createElement("style");
-    el.setAttribute("data-settings-spin", "true");
-    el.textContent = `
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(el);
-  }
-                  }
