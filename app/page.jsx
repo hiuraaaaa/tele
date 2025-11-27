@@ -23,10 +23,113 @@ export default function OverviewPage() {
   }
 
   const totalCommands = settings.commands?.length || 0;
-  const enabledCommands = settings.commands?.filter((c) => c.enabled).length || 0;
+  const enabledCommands =
+    settings.commands?.filter((c) => c.enabled).length || 0;
+
+  const isOnline = settings.status === "online";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* 🎀 Banner */}
+      <section>
+        <div
+          style={{
+            borderRadius: "1.1rem",
+            padding: "0.9rem 1.1rem",
+            background:
+              "linear-gradient(135deg, #e0f2fe, #eef2ff, #f5f3ff)",
+            border: "1px solid rgba(148, 163, 184, 0.35)",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "0.75rem",
+            boxShadow: "0 14px 35px rgba(15,23,42,0.10)"
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 999,
+              backgroundColor: "rgba(15,23,42,0.05)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.1rem"
+            }}
+          >
+            🤖
+          </div>
+          <div style={{ flex: "1 1 160px" }}>
+            <div
+              style={{
+                fontSize: "0.8rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.14em",
+                color: "#64748b",
+                marginBottom: 2
+              }}
+            >
+              Telegram Bot Panel
+            </div>
+            <div
+              style={{
+                fontSize: "0.95rem",
+                fontWeight: 600,
+                color: "#0f172a"
+              }}
+            >
+              {settings.botName || "Stella Bot"} terhubung ke Pterodactyl
+            </div>
+            <div
+              style={{
+                fontSize: "0.8rem",
+                color: "#64748b",
+                marginTop: 2
+              }}
+            >
+              Prefix <code> {settings.prefix || "!"} </code> ·
+              &nbsp;Status bot{" "}
+              <strong>{isOnline ? "Online" : "Unknown / Maintenance"}</strong>
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.4rem",
+              fontSize: "0.78rem"
+            }}
+          >
+            <span
+              style={{
+                padding: "0.35rem 0.7rem",
+                borderRadius: 999,
+                backgroundColor: isOnline ? "#dcfce7" : "#fee2e2",
+                color: isOnline ? "#166534" : "#b91c1c",
+                fontWeight: 600
+              }}
+            >
+              ● {isOnline ? "Online" : "Not Online"}
+            </span>
+            <Link
+              href="/settings"
+              style={{
+                padding: "0.35rem 0.7rem",
+                borderRadius: 999,
+                border: "1px solid rgba(148,163,184,0.7)",
+                backgroundColor: "#f8fafc",
+                textDecoration: "none",
+                color: "#0f172a",
+                fontWeight: 500
+              }}
+            >
+              Kelola pengaturan →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Breadcrumb */}
       <div
         style={{
@@ -114,10 +217,8 @@ export default function OverviewPage() {
                   gap: "0.4rem",
                   padding: "0.3rem 0.7rem",
                   borderRadius: "999px",
-                  backgroundColor:
-                    settings.status === "online" ? "#dcfce7" : "#fee2e2",
-                  color:
-                    settings.status === "online" ? "#166534" : "#b91c1c",
+                  backgroundColor: isOnline ? "#dcfce7" : "#fee2e2",
+                  color: isOnline ? "#166534" : "#b91c1c",
                   fontSize: "0.8rem",
                   fontWeight: 600
                 }}
@@ -127,11 +228,10 @@ export default function OverviewPage() {
                     width: 8,
                     height: 8,
                     borderRadius: "999px",
-                    backgroundColor:
-                      settings.status === "online" ? "#22c55e" : "#f97316"
+                    backgroundColor: isOnline ? "#22c55e" : "#f97316"
                   }}
                 />
-                {settings.status === "online" ? "Online" : "Unknown"}
+                {isOnline ? "Online" : "Unknown"}
               </span>
 
               {/* prefix badge */}
@@ -222,8 +322,8 @@ export default function OverviewPage() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
           <StatCard
             title="Status Bot"
-            value={settings.status === "online" ? "Online" : "Unknown"}
-            accent={settings.status === "online" ? "#22c55e" : "#f97316"}
+            value={isOnline ? "Online" : "Unknown"}
+            accent={isOnline ? "#22c55e" : "#f97316"}
           />
           <StatCard title="Total Commands" value={`${totalCommands}`} />
           <StatCard title="Commands Aktif" value={`${enabledCommands}`} />
@@ -268,7 +368,7 @@ export default function OverviewPage() {
           color: "#9ca3af"
         }}
       >
-        Bot Control Panel · Powered by Next.js & Telegram Bot API
+        Bot Control Panel · Powered by Next.js &amp; Telegram Bot API
       </footer>
     </div>
   );
@@ -388,4 +488,4 @@ function InfoRow({ label, children }) {
       </span>
     </div>
   );
-          }
+}
