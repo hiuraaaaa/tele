@@ -11,12 +11,8 @@ export async function POST(request) {
   try {
     const body = await request.json();
     SETTINGS = { ...SETTINGS, ...body };
-
     return Response.json(SETTINGS, { status: 200 });
   } catch (err) {
-    return Response.json(
-      { error: 'Invalid JSON' },
-      { status: 400 }
-    );
+    return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 }
