@@ -1,13 +1,18 @@
 // app/PanelShell.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function PanelShell({ children }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  // Tutup sidebar tiap pindah halaman
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const menu = [
     { href: "/", label: "Overview" },
@@ -17,8 +22,13 @@ export default function PanelShell({ children }) {
   ];
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      {/* Navbar atas */}
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f3f4f6"
+      }}
+    >
+      {/* NAVBAR */}
       <header
         style={{
           position: "fixed",
@@ -27,33 +37,57 @@ export default function PanelShell({ children }) {
           right: 0,
           height: 60,
           backgroundColor: "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
+          borderBottom: "1px solid rgba(15,23,42,0.04)",
+          boxShadow: "0 1px 0 rgba(15,23,42,0.03)",
           display: "flex",
           alignItems: "center",
-          padding: "0 1rem",
           zIndex: 50
         }}
       >
-        <button
-          onClick={() => setOpen(!open)}
+        <div
           style={{
-            width: 34,
-            height: 34,
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            backgroundColor: "#f9fafb",
-            marginRight: "0.75rem",
-            cursor: "pointer",
-            fontSize: "18px",
-            lineHeight: "1"
+            width: "100%",
+            maxWidth: 1040,
+            margin: "0 auto",
+            padding: "0 1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem"
           }}
         >
-          ☰
-        </button>
-        <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>Bot Control Panel</span>
+          <button
+            onClick={() => setOpen(!open)}
+            aria-label="Open navigation"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 999,
+              border: "1px solid #e5e7eb",
+              backgroundColor: "#f9fafb",
+              cursor: "pointer",
+              fontSize: "18px",
+              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            ☰
+          </button>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              letterSpacing: "0.01em",
+              color: "#111827"
+            }}
+          >
+            Bot Control Panel
+          </span>
+        </div>
       </header>
 
-      {/* Sidebar */}
+      {/* SIDEBAR OVERLAY */}
       <aside
         style={{
           position: "fixed",
@@ -61,29 +95,36 @@ export default function PanelShell({ children }) {
           bottom: 0,
           left: open ? 0 : -260,
           width: 240,
-          backgroundColor: "#ffffff",
+          background:
+            "linear-gradient(135deg, rgba(255,255,255,0.98), rgba(249,250,251,0.98))",
           borderRight: "1px solid #e5e7eb",
           padding: "1.25rem 1rem",
-          boxShadow: open ? "0 0 30px rgba(15,23,42,0.15)" : "none",
+          boxShadow: open ? "0 18px 45px rgba(15,23,42,0.18)" : "none",
           transition: "left 0.25s ease",
-          zIndex: 40
+          zIndex: 40,
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.75rem"
         }}
       >
-        <h2
+        <div
           style={{
-            fontSize: "1rem",
+            fontSize: "0.85rem",
             fontWeight: 700,
-            margin: "0 0 1.2rem"
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            color: "#9ca3af",
+            marginBottom: "0.3rem"
           }}
         >
           Navigation
-        </h2>
+        </div>
 
         <nav
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "0.4rem",
+            gap: "0.3rem",
             fontSize: "0.9rem"
           }}
         >
@@ -93,10 +134,9 @@ export default function PanelShell({ children }) {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setOpen(false)}
                 style={{
-                  padding: "0.45rem 0.7rem",
-                  borderRadius: "0.6rem",
+                  padding: "0.45rem 0.75rem",
+                  borderRadius: "0.7rem",
                   textDecoration: "none",
                   color: active ? "#111827" : "#4b5563",
                   backgroundColor: active ? "#e5f0ff" : "transparent",
@@ -110,7 +150,7 @@ export default function PanelShell({ children }) {
         </nav>
       </aside>
 
-      {/* Overlay klik untuk nutup sidebar (mobile) */}
+      {/* BACKDROP GELAP SAAT SIDEBAR BUKA */}
       {open && (
         <div
           onClick={() => setOpen(false)}
@@ -118,24 +158,29 @@ export default function PanelShell({ children }) {
             position: "fixed",
             inset: 0,
             top: 60,
-            backgroundColor: "rgba(15,23,42,0.35)",
+            backgroundColor: "rgba(15,23,42,0.4)",
             zIndex: 30
           }}
         />
       )}
 
-      {/* Konten utama */}
+      {/* MAIN CONTENT */}
       <main
         style={{
-          paddingTop: 70,
-          paddingBottom: 24,
-          paddingLeft: 16,
-          paddingRight: 16,
-          maxWidth: 960,
-          margin: "0 auto"
+          paddingTop: 76,
+          paddingBottom: 24
         }}
       >
-        {children}
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 1040,
+            margin: "0 auto",
+            padding: "0 1rem"
+          }}
+        >
+          {children}
+        </div>
       </main>
     </div>
   );
