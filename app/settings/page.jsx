@@ -94,17 +94,18 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      {/* Content grid: form + preview */}
-      <section style={styles.grid} className="settings-grid">
-        {/* Form card */}
-        <form onSubmit={handleSave} style={styles.formCard}>
-          <h2 style={styles.cardTitle}>Konfigurasi Utama</h2>
-          <p style={styles.cardDesc}>
-            Ubah nama bot, prefix command, dan pesan bawaan yang akan dibaca
-            oleh bot melalui endpoint <code style={styles.code}>/api/settings</code>.
-          </p>
+      {/* FORM CARD */}
+      <section style={styles.card}>
+        <h2 style={styles.cardTitle}>Konfigurasi Utama</h2>
+        <p style={styles.cardDesc}>
+          Ubah nama bot, prefix command, dan pesan bawaan yang akan dibaca
+          oleh bot melalui endpoint{" "}
+          <code style={styles.code}>/api/settings</code>.
+        </p>
 
-          <div style={styles.fieldsGrid}>
+        {/* Bot name + prefix, responsif (auto wrap) */}
+        <div style={styles.fieldsRow}>
+          <div style={styles.fieldCol}>
             <Field
               label="Bot Name"
               value={settings.botName}
@@ -112,97 +113,101 @@ export default function SettingsPage() {
               placeholder="Stella Bot"
               help="Nama ini akan muncul di pesan sambutan / informasi bot."
             />
-
+          </div>
+          <div style={styles.fieldColNarrow}>
             <Field
               label="Prefix"
               value={settings.prefix}
               maxLength={3}
-              style={{ maxWidth: "150px" }}
               onChange={(v) => setSettings({ ...settings, prefix: v })}
               placeholder="!"
-              help="Contoh: !, ?, .  — dipakai di depan command (mis. !ping)."
+              help="Contoh: !, ?, . — dipakai di depan command (mis. !ping)."
             />
           </div>
+        </div>
 
-          <Field
-            label="Welcome Message"
-            textarea
-            value={settings.welcomeMessage}
-            onChange={(v) =>
-              setSettings({ ...settings, welcomeMessage: v })
-            }
-            placeholder="Halo, aku Stella Bot. Siap membantu ✨"
-          />
+        <Field
+          label="Welcome Message"
+          textarea
+          value={settings.welcomeMessage}
+          onChange={(v) =>
+            setSettings({ ...settings, welcomeMessage: v })
+          }
+          placeholder="Halo, aku Stella Bot. Siap membantu ✨"
+        />
 
-          <Field
-            label="Auto Reply Message"
-            textarea
-            value={settings.autoReply}
-            onChange={(v) => setSettings({ ...settings, autoReply: v })}
-            placeholder="Terima kasih, pesanmu sudah diterima."
-            help="Pesan default ketika command tidak dikenali atau sedang maintenance."
-          />
+        <Field
+          label="Auto Reply Message"
+          textarea
+          value={settings.autoReply}
+          onChange={(v) => setSettings({ ...settings, autoReply: v })}
+          placeholder="Terima kasih, pesanmu sudah diterima."
+          help="Pesan default ketika command tidak dikenali atau sedang maintenance."
+        />
 
-          <div style={styles.actionsRow}>
-            <button type="submit" disabled={saving} style={styles.btnPrimary}>
-              {saving ? "Menyimpan…" : "Simpan Pengaturan"}
-            </button>
-            <button
-              type="button"
-              disabled={resetting}
-              onClick={handleReset}
-              style={styles.btnDanger}
-            >
-              {resetting ? "Mereset…" : "Reset ke Default"}
-            </button>
+        <div style={styles.actionsRow}>
+          <button
+            type="submit"
+            onClick={handleSave}
+            disabled={saving}
+            style={styles.btnPrimary}
+          >
+            {saving ? "Menyimpan…" : "Simpan Pengaturan"}
+          </button>
+          <button
+            type="button"
+            disabled={resetting}
+            onClick={handleReset}
+            style={styles.btnDanger}
+          >
+            {resetting ? "Mereset…" : "Reset ke Default"}
+          </button>
+        </div>
+      </section>
+
+      {/* PREVIEW CARD */}
+      <section style={styles.previewCard}>
+        <h2 style={styles.previewTitle}>Preview Respon Bot</h2>
+        <p style={styles.previewDesc}>
+          Gambaran singkat bagaimana user akan melihat bot dengan
+          pengaturan saat ini.
+        </p>
+
+        <div style={styles.previewBlock}>
+          <span style={styles.previewLabel}>/start</span>
+          <div style={styles.previewBubble}>
+            <p style={styles.previewBubbleTitle}>
+              {settings.botName || "Stella Bot"}
+            </p>
+            <p style={styles.previewBubbleText}>
+              {settings.welcomeMessage ||
+                "Halo, aku Stella Bot. Siap membantu ✨"}
+            </p>
+            <p style={styles.previewHint}>
+              Prefix aktif:{" "}
+              <code style={styles.previewCode}>
+                {settings.prefix || "!"}
+              </code>
+            </p>
           </div>
-        </form>
+        </div>
 
-        {/* Preview card */}
-        <aside style={styles.previewCard}>
-          <h2 style={styles.previewTitle}>Preview Respon Bot</h2>
-          <p style={styles.previewDesc}>
-            Gambaran singkat bagaimana user akan melihat bot dengan
-            pengaturan saat ini.
-          </p>
-
-          <div style={styles.previewBlock}>
-            <span style={styles.previewLabel}>/start</span>
-            <div style={styles.previewBubble}>
-              <p style={styles.previewBubbleTitle}>
-                {settings.botName || "Stella Bot"}
-              </p>
-              <p style={styles.previewBubbleText}>
-                {settings.welcomeMessage ||
-                  "Halo, aku Stella Bot. Siap membantu ✨"}
-              </p>
-              <p style={styles.previewHint}>
-                Prefix aktif:{" "}
-                <code style={styles.previewCode}>
-                  {settings.prefix || "!"}
-                </code>
-              </p>
-            </div>
+        <div style={styles.previewBlock}>
+          <span style={styles.previewLabel}>
+            Pesan tanpa command yang cocok
+          </span>
+          <div style={styles.previewBubbleSecondary}>
+            <p style={styles.previewBubbleText}>
+              {settings.autoReply ||
+                "Terima kasih, pesannya sudah diterima."}
+            </p>
           </div>
-
-          <div style={styles.previewBlock}>
-            <span style={styles.previewLabel}>
-              Pesan tanpa command yang cocok
-            </span>
-            <div style={styles.previewBubbleSecondary}>
-              <p style={styles.previewBubbleText}>
-                {settings.autoReply ||
-                  "Terima kasih, pesannya sudah diterima."}
-              </p>
-            </div>
-          </div>
-        </aside>
+        </div>
       </section>
     </div>
   );
 }
 
-/* FIELD COMPONENT */
 function Field({
   label,
   value,
@@ -210,7 +215,6 @@ function Field({
   textarea,
   help,
   maxLength,
-  style,
   placeholder,
 }) {
   return (
@@ -222,7 +226,7 @@ function Field({
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          style={{ ...styles.input, ...styles.textarea, ...(style || {}) }}
+          style={{ ...styles.input, ...styles.textarea }}
         />
       ) : (
         <input
@@ -231,7 +235,7 @@ function Field({
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          style={{ ...styles.input, ...(style || {}) }}
+          style={styles.input}
         />
       )}
       {help && <div style={styles.fieldHelp}>{help}</div>}
@@ -239,7 +243,6 @@ function Field({
   );
 }
 
-/* STYLES */
 const styles = {
   container: {
     display: "flex",
@@ -304,16 +307,8 @@ const styles = {
     margin: 0,
   },
 
-  // layout
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1.6fr 1.2fr",
-    gap: 20,
-    alignItems: "flex-start",
-  },
-
-  // form card
-  formCard: {
+  // cards
+  card: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
     border: "1px solid #e5e7eb",
@@ -334,11 +329,18 @@ const styles = {
     marginBottom: 16,
   },
 
-  fieldsGrid: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)",
+  // responsive row untuk Bot Name + Prefix
+  fieldsRow: {
+    display: "flex",
+    flexWrap: "wrap",
     gap: 12,
     marginBottom: 8,
+  },
+  fieldCol: {
+    flex: "1 1 180px",
+  },
+  fieldColNarrow: {
+    flex: "0 0 140px",
   },
 
   fieldWrapper: {
@@ -475,22 +477,16 @@ const styles = {
   },
 };
 
-/* inject keyframes sekali */
+// keyframes buat spinner
 if (typeof document !== "undefined") {
-  const styleEl = document.createElement("style");
-  styleEl.textContent = `
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    @media (max-width: 900px) {
-      .settings-grid {
-        grid-template-columns: 1fr !important;
+  if (!document.querySelector("style[data-settings-spin]")) {
+    const el = document.createElement("style");
+    el.setAttribute("data-settings-spin", "true");
+    el.textContent = `
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
-    }
-  `;
-  if (!document.querySelector("style[data-settings-page]")) {
-    styleEl.setAttribute("data-settings-page", "true");
-    document.head.appendChild(styleEl);
+    `;
+    document.head.appendChild(el);
   }
-          }
+                  }
