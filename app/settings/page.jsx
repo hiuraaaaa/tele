@@ -1,267 +1,265 @@
+// app/settings/page.jsx
 "use client";
 
 import { useEffect, useState } from "react";
 
-// --- Main Component ---
 export default function SettingsPage() {
+  // --- State Management ---
   const [settings, setSettings] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Mengambil data settings
-  async function fetchSettings() {
+  // --- Logic Functions ---
+  async function load() {
     try {
       const res = await fetch("/api/settings");
       const data = await res.json();
       setSettings(data);
     } catch (err) {
-      console.error("Failed to load settings:", err);
+      console.error("Gagal load settings:", err);
+      // Dummy data jika fetch gagal (untuk preview UI)
+      setSettings({
+        botName: "Stella Bot",
+        prefix: "!",
+        welcomeMessage: "Halo, aku Stella Bot. Siap membantu ✨",
+        autoReply: "Terima kasih, pesanmu sudah diterima.",
+      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
-  // Initial Load
   useEffect(() => {
-    fetchSettings();
-    injectSpinnerStyle(); // Inject CSS for spinner globally
+    load();
   }, []);
 
-  // Handler: Simpan Pengaturan
-  async function onSave(e) {
+  async function handleSave(e) {
     e.preventDefault();
-    setIsSaving(true);
+    setSaving(true);
     try {
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-      alert("Pengaturan berhasil disimpan.");
-    } catch (error) {
-      alert("Gagal menyimpan: " + error.message);
+      alert("Pengaturan disimpan.");
+    } catch (e) {
+      alert("Gagal menyimpan: " + e.message);
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   }
 
-  // Handler: Reset Pengaturan
-  async function onReset() {
-    if (!confirm("Apakah Anda yakin ingin mereset semua pengaturan ke default?")) return;
-    
-    setIsResetting(true);
+  async function handleReset() {
+    if (!confirm("Reset semua pengaturan ke default?")) return;
+    setResetting(true);
     try {
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reset: true }),
       });
-      await fetchSettings(); // Reload data setelah reset
-      alert("Pengaturan telah direset.");
-    } catch (error) {
-      alert("Gagal reset: " + error.message);
+      await load();
+    } catch (e) {
+      alert("Gagal reset: " + e.message);
     } finally {
-      setIsResetting(false);
+      setResetting(false);
     }
   }
 
-  // --- Render States ---
-
-  if (isLoading) return <LoadingState />;
-  if (!settings) return <ErrorState />;
-
-  return (
-    <div style={styles.container}>
-      <Breadcrumb />
-      
-      <Header 
-        title="Bot Settings" 
-        subtitle="Kelola identitas bot, prefix command, dan pesan otomatis yang akan dipakai langsung oleh bot di Pterodactyl."
-      />
-
-      <SettingsForm 
-        settings={settings} 
-        setSettings={setSettings} 
-        onSave={onSave}
-        onReset={onReset}
-        isSaving={isSaving}
-        isResetting={isResetting}
-      />
-
-      <PreviewSection settings={settings} />
-    </div>
+  // --- Global Styles Injection ---
+  const GlobalStyles = () => (
+    <style dangerouslySetInnerHTML={{
+      __html: `
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Helper class untuk responsivitas grid tanpa media query inline */
+        .grid-responsive {
+          display: grid;
+          grid-template-columns: 1fr 100px; /* Rasio Name:Prefix (Prefix fix 100px) */
+          gap: 16px;
+        }
+        @media (max-width: 400px) {
+          .grid-responsive {
+            grid-template-columns: 1fr; /* Stack ke bawah di layar sangat kecil */
+          }
+        }
+      `
+    }} />
   );
-}
 
-// --- Sub-Components (UI Parts) ---
+  // --- Loading State ---
+  if (loading) {
+    return (
+      <div style={styles.centerContainer}>
+        <GlobalStyles />
+        <div style={styles.spinner} />
+        <p style={styles.loadingText}>Memuat pengaturan…</p>
+      </div>
+    );
+  }
 
-function Breadcrumb() {
-  return (
-    <nav style={styles.breadcrumb}>
-      Home / <span style={styles.breadcrumbActive}>Bot Settings</span>
-    </nav>
-  );
-}
-
-function Header({ title, subtitle }) {
-  return (
-    <header style={styles.header}>
-      <h1 style={styles.title}>{title}</h1>
-      <p style={styles.subtitle}>{subtitle}</p>
-    </header>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div style={styles.loadingContainer}>
-      <div style={styles.spinner} />
-      <p style={styles.loadingText}>Memuat pengaturan…</p>
-    </div>
-  );
-}
-
-function ErrorState() {
-  return (
-    <div style={styles.errorContainer}>
-      <p style={styles.errorText}>
-        Gagal memuat data pengaturan. Silakan refresh halaman.
-      </p>
-    </div>
-  );
-}
-
-function SettingsForm({ settings, setSettings, onSave, onReset, isSaving, isResetting }) {
-  const handleChange = (field, value) => {
-    setSettings((prev) => ({ ...prev, [field]: value }));
-  };
-
-  return (
-    <section style={styles.card}>
-      <div style={styles.cardHeader}>
-        <h2 style={styles.cardTitle}>Konfigurasi Utama</h2>
-        <p style={styles.cardDesc}>
-          Ubah nama bot, prefix command, dan pesan bawaan yang akan dibaca oleh bot melalui endpoint <code style={styles.code}>/api/settings</code>.
+  // --- Error State ---
+  if (!settings) {
+    return (
+      <div style={styles.centerContainer}>
+        <p style={styles.errorText}>
+          Gagal memuat data pengaturan. Coba refresh halaman.
         </p>
       </div>
+    );
+  }
 
-      <div style={styles.fieldsRow}>
-        <div style={styles.fieldCol}>
-          <InputField
+  // --- Main Render ---
+  return (
+    <div style={styles.container}>
+      <GlobalStyles />
+      
+      {/* Breadcrumb */}
+      <nav style={styles.breadcrumb}>
+        Home / <span style={styles.breadcrumbActive}>Bot Settings</span>
+      </nav>
+
+      {/* Header */}
+      <header style={styles.header}>
+        <h1 style={styles.title}>Bot Settings</h1>
+        <p style={styles.subtitle}>
+          Kelola identitas bot dan pesan otomatis.
+        </p>
+      </header>
+
+      {/* FORM CARD */}
+      <section style={styles.card}>
+        <div style={styles.cardHeader}>
+          <h2 style={styles.cardTitle}>Konfigurasi Utama</h2>
+          <p style={styles.cardDesc}>
+            Pengaturan dasar identitas bot Anda.
+          </p>
+        </div>
+
+        {/* ROW 1: Bot Name & Prefix (Fixed Layout) */}
+        {/* Menggunakan className 'grid-responsive' yang didefinisikan di GlobalStyles */}
+        <div className="grid-responsive" style={{ marginBottom: 20 }}>
+          <Field
             label="Bot Name"
             value={settings.botName}
-            onChange={(val) => handleChange("botName", val)}
+            onChange={(v) => setSettings({ ...settings, botName: v })}
             placeholder="Stella Bot"
-            helpText="Nama ini akan muncul di pesan sambutan / informasi bot."
+            help="Nama tampilan bot."
           />
-        </div>
-        <div style={styles.fieldColNarrow}>
-          <InputField
+          <Field
             label="Prefix"
             value={settings.prefix}
             maxLength={3}
-            onChange={(val) => handleChange("prefix", val)}
+            centerText
+            onChange={(v) => setSettings({ ...settings, prefix: v })}
             placeholder="!"
-            helpText="Contoh: !, ?, ."
+            help="Cth: ! / ."
           />
         </div>
-      </div>
 
-      <InputField
-        label="Welcome Message"
-        textarea
-        value={settings.welcomeMessage}
-        onChange={(val) => handleChange("welcomeMessage", val)}
-        placeholder="Halo, aku Stella Bot. Siap membantu ✨"
-      />
-
-      <InputField
-        label="Auto Reply Message"
-        textarea
-        value={settings.autoReply}
-        onChange={(val) => handleChange("autoReply", val)}
-        placeholder="Terima kasih, pesanmu sudah diterima."
-        helpText="Pesan default ketika command tidak dikenali atau sedang maintenance."
-      />
-
-      <div style={styles.actionsRow}>
-        <button onClick={onSave} disabled={isSaving} style={styles.btnPrimary}>
-          {isSaving ? "Menyimpan…" : "Simpan Pengaturan"}
-        </button>
-        <button onClick={onReset} disabled={isResetting} style={styles.btnDanger}>
-          {isResetting ? "Mereset…" : "Reset ke Default"}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function PreviewSection({ settings }) {
-  return (
-    <section style={styles.previewCard}>
-      <h2 style={styles.previewTitle}>Preview Respon Bot</h2>
-      <p style={styles.previewDesc}>Gambaran singkat bagaimana user akan melihat bot dengan pengaturan saat ini.</p>
-
-      <div style={styles.previewBlock}>
-        <span style={styles.previewLabel}>/start</span>
-        <div style={styles.previewBubble}>
-          <p style={styles.previewBubbleTitle}>{settings.botName || "Stella Bot"}</p>
-          <p style={styles.previewBubbleText}>{settings.welcomeMessage || "Halo, aku Stella Bot. Siap membantu ✨"}</p>
-          <p style={styles.previewHint}>
-            Prefix aktif: <code style={styles.previewCode}>{settings.prefix || "!"}</code>
-          </p>
-        </div>
-      </div>
-
-      <div style={styles.previewBlock}>
-        <span style={styles.previewLabel}>Pesan tanpa command</span>
-        <div style={styles.previewBubbleSecondary}>
-          <p style={styles.previewBubbleText}>{settings.autoReply || "Terima kasih, pesannya sudah diterima."}</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// Reusable Input Component
-function InputField({ label, value, onChange, textarea, helpText, maxLength, placeholder }) {
-  return (
-    <div style={styles.fieldWrapper}>
-      <label style={styles.fieldLabel}>{label}</label>
-      {textarea ? (
-        <textarea
-          rows={3}
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          style={{ ...styles.input, ...styles.textarea }}
+        <Field
+          label="Welcome Message"
+          textarea
+          value={settings.welcomeMessage}
+          onChange={(v) => setSettings({ ...settings, welcomeMessage: v })}
+          placeholder="Halo, aku Stella Bot. Siap membantu ✨"
         />
-      ) : (
-        <input
-          type="text"
-          maxLength={maxLength}
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          style={styles.input}
+
+        <Field
+          label="Auto Reply Message"
+          textarea
+          value={settings.autoReply}
+          onChange={(v) => setSettings({ ...settings, autoReply: v })}
+          placeholder="Terima kasih, pesanmu sudah diterima."
+          help="Pesan default saat command tidak dikenal."
         />
-      )}
-      {helpText && <div style={styles.fieldHelp}>{helpText}</div>}
+
+        {/* Actions - Buttons dibuat Full Width & Rata */}
+        <div style={styles.actionsRow}>
+          <button
+            type="submit"
+            onClick={handleSave}
+            disabled={saving}
+            style={{...styles.btn, ...styles.btnPrimary}}
+          >
+            {saving ? "Menyimpan..." : "Simpan Pengaturan"}
+          </button>
+          
+          <button
+            type="button"
+            disabled={resetting}
+            onClick={handleReset}
+            style={{...styles.btn, ...styles.btnDanger}}
+          >
+            {resetting ? "Mereset..." : "Reset Default"}
+          </button>
+        </div>
+      </section>
+
+      {/* PREVIEW CARD */}
+      <section style={styles.previewCard}>
+        <h2 style={styles.previewTitle}>Preview Live</h2>
+        
+        <div style={styles.previewRow}>
+           {/* Simulasi Chat Bubble */}
+           <PreviewBubble 
+            label="/start"
+            title={settings.botName || "Bot Name"}
+            text={settings.welcomeMessage}
+            footer={`Prefix: ${settings.prefix || "!"}`}
+          />
+
+          <PreviewBubble 
+            label="Unknown Command"
+            variant="secondary"
+            text={settings.autoReply}
+          />
+        </div>
+      </section>
     </div>
   );
 }
 
-// Helper: Inject Keyframes for Spinner (Clean approach)
-function injectSpinnerStyle() {
-  if (typeof document !== "undefined" && !document.getElementById("spinner-style")) {
-    const style = document.createElement("style");
-    style.id = "spinner-style";
-    style.textContent = `
-      @keyframes spin { to { transform: rotate(360deg); } }
-    `;
-    document.head.appendChild(style);
-  }
+// --- Sub-Components ---
+
+function Field({ label, value, onChange, textarea, help, maxLength, placeholder, centerText }) {
+  const InputComponent = textarea ? 'textarea' : 'input';
+  
+  return (
+    <div style={styles.fieldWrapper}>
+      <label style={styles.fieldLabel}>{label}</label>
+      <InputComponent
+        value={value}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        onChange={(e) => onChange(e.target.value)}
+        rows={textarea ? 3 : undefined}
+        type={!textarea ? "text" : undefined}
+        style={{
+          ...styles.input,
+          ...(textarea ? styles.textarea : {}),
+          textAlign: centerText ? 'center' : 'left'
+        }}
+      />
+      {help && <div style={styles.fieldHelp}>{help}</div>}
+    </div>
+  );
+}
+
+function PreviewBubble({ label, title, text, footer, variant = 'primary' }) {
+  const bubbleStyle = variant === 'secondary' ? styles.previewBubbleSecondary : styles.previewBubble;
+  
+  return (
+    <div style={styles.previewItem}>
+      <span style={styles.previewLabel}>{label}</span>
+      <div style={bubbleStyle}>
+        {title && <p style={styles.previewBubbleTitle}>{title}</p>}
+        <p style={styles.previewBubbleText}>{text}</p>
+        {footer && <p style={styles.previewHint}>{footer}</p>}
+      </div>
+    </div>
+  );
 }
 
 // --- Styles Object ---
@@ -269,126 +267,129 @@ const styles = {
   container: {
     display: "flex",
     flexDirection: "column",
-    gap: "1.5rem",
+    gap: "20px",
     maxWidth: "100%",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    color: "#1f2937",
   },
   
-  // States
-  loadingContainer: {
+  // Loading & Error
+  centerContainer: {
     minHeight: "300px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: "1rem",
+    gap: "12px",
   },
   spinner: {
-    width: "36px",
-    height: "36px",
+    width: "32px",
+    height: "32px",
     borderRadius: "50%",
     border: "3px solid #e5e7eb",
     borderTopColor: "#3b82f6",
     animation: "spin 0.8s linear infinite",
   },
   loadingText: { fontSize: "14px", color: "#6b7280" },
-  errorContainer: { padding: "2rem", textAlign: "center" },
-  errorText: { fontSize: "14px", color: "#ef4444" },
+  errorText: { fontSize: "14px", color: "#ef4444", textAlign: "center", padding: "20px" },
 
-  // Header & Nav
-  breadcrumb: { fontSize: "13px", color: "#9ca3af" },
-  breadcrumbActive: { color: "#4b5563", fontWeight: 500 },
-  header: { marginTop: "0.25rem" },
-  title: { fontSize: "26px", fontWeight: 700, color: "#111827", margin: "0 0 0.5rem 0" },
-  subtitle: { fontSize: "14px", color: "#6b7280", lineHeight: 1.6, margin: 0 },
+  // Header
+  breadcrumb: { fontSize: "12px", color: "#9ca3af", marginBottom: "4px" },
+  breadcrumbActive: { color: "#4b5563", fontWeight: 600 },
+  header: { marginBottom: "8px" },
+  title: { fontSize: "24px", fontWeight: 800, color: "#111827", margin: "0 0 4px 0" },
+  subtitle: { fontSize: "14px", color: "#6b7280", margin: 0 },
 
-  // Cards
+  // Card
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: "16px",
+    borderRadius: "12px",
     border: "1px solid #e5e7eb",
-    padding: "1.5rem",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
+    padding: "20px",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
   },
-  cardHeader: { marginBottom: "1.5rem" },
-  cardTitle: { fontSize: "16px", fontWeight: 600, color: "#111827", margin: "0 0 0.25rem 0" },
+  cardHeader: { marginBottom: "20px" },
+  cardTitle: { fontSize: "16px", fontWeight: 700, color: "#111827", margin: "0 0 4px 0" },
   cardDesc: { fontSize: "13px", color: "#6b7280", margin: 0 },
 
-  // Layouts
-  fieldsRow: { display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "0.5rem" },
-  fieldCol: { flex: "1 1 200px" },
-  fieldColNarrow: { flex: "0 0 120px" },
-
   // Inputs
-  fieldWrapper: { marginBottom: "1rem" },
-  fieldLabel: { fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" },
+  fieldWrapper: { display: "flex", flexDirection: "column", height: "100%" }, // Height 100% agar align
+  fieldLabel: { fontSize: "13px", fontWeight: 600, color: "#374151", marginBottom: "6px" },
+  fieldHelp: { marginTop: "4px", fontSize: "11px", color: "#9ca3af" },
+  
   input: {
-    display: "block",
     width: "100%",
-    padding: "0.75rem",
-    borderRadius: "0.5rem",
+    padding: "10px 12px",
+    borderRadius: "8px",
     border: "1px solid #d1d5db",
     backgroundColor: "#f9fafb",
     fontSize: "14px",
     color: "#111827",
     outline: "none",
-    transition: "border-color 0.15s ease-in-out",
+    boxSizing: "border-box", // Penting agar padding tidak jebol
+    transition: "border 0.2s",
   },
-  textarea: { resize: "vertical", minHeight: "100px", fontFamily: "inherit" },
-  fieldHelp: { marginTop: "0.25rem", fontSize: "12px", color: "#9ca3af" },
+  textarea: { resize: "vertical", minHeight: "80px", lineHeight: 1.5, fontFamily: "inherit" },
 
-  // Actions
-  actionsRow: { marginTop: "1.5rem", display: "flex", gap: "1rem" },
-  btnPrimary: {
-    padding: "0.75rem 1.5rem",
-    borderRadius: "9999px",
-    border: "none",
-    background: "linear-gradient(135deg, #22c55e, #3b82f6)",
-    color: "#ffffff",
+  // Buttons
+  actionsRow: { 
+    marginTop: "24px", 
+    display: "flex", 
+    gap: "12px",
+    // Membuat tombol responsive: wrap di layar kecil, tapi fill width
+    flexWrap: "wrap",
+  },
+  btn: {
+    flex: "1 1 auto", // Tombol akan mengisi ruang yang ada
+    minWidth: "140px",
+    padding: "10px 16px",
+    borderRadius: "8px",
     fontWeight: 600,
     fontSize: "14px",
     cursor: "pointer",
-    transition: "opacity 0.2s",
+    border: "none",
+    textAlign: "center",
+  },
+  btnPrimary: {
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
   },
   btnDanger: {
-    padding: "0.75rem 1.5rem",
-    borderRadius: "9999px",
+    backgroundColor: "#fee2e2",
+    color: "#dc2626",
     border: "1px solid #fecaca",
-    backgroundColor: "#fef2f2",
-    color: "#b91c1c",
-    fontWeight: 500,
-    fontSize: "14px",
-    cursor: "pointer",
   },
 
   // Preview
   previewCard: {
     backgroundColor: "#f8fafc",
-    borderRadius: "16px",
-    border: "1px dashed #cbd5e1",
-    padding: "1.5rem",
-  },
-  previewTitle: { fontSize: "15px", fontWeight: 600, color: "#111827", margin: "0 0 0.25rem 0" },
-  previewDesc: { fontSize: "13px", color: "#6b7280", margin: "0 0 1rem 0" },
-  previewBlock: { marginBottom: "1rem" },
-  previewLabel: { fontSize: "12px", color: "#64748b", marginBottom: "0.5rem", display: "block", fontWeight: 500 },
-  previewBubble: {
-    backgroundColor: "#ffffff",
     borderRadius: "12px",
     border: "1px solid #e2e8f0",
-    padding: "1rem",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    padding: "20px",
+  },
+  previewTitle: { fontSize: "14px", fontWeight: 600, color: "#64748b", margin: "0 0 16px 0", textTransform: "uppercase", letterSpacing: "0.5px" },
+  previewRow: { display: "flex", flexDirection: "column", gap: "16px" },
+  previewItem: {},
+  previewLabel: { fontSize: "11px", color: "#94a3b8", marginBottom: "4px", display: "block", fontWeight: 500 },
+  
+  previewBubble: {
+    backgroundColor: "#ffffff",
+    borderRadius: "0 12px 12px 12px",
+    border: "1px solid #e5e7eb",
+    padding: "12px",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+    maxWidth: "90%",
   },
   previewBubbleSecondary: {
     backgroundColor: "#eff6ff",
-    borderRadius: "12px",
+    borderRadius: "12px 12px 12px 0",
     border: "1px solid #bfdbfe",
-    padding: "1rem",
+    padding: "12px",
+    marginLeft: "auto", // Align right
+    maxWidth: "90%",
   },
-  previewBubbleTitle: { fontSize: "13px", fontWeight: 700, color: "#1e293b", margin: "0 0 0.25rem 0" },
-  previewBubbleText: { fontSize: "13px", color: "#334155", margin: "0 0 0.5rem 0", lineHeight: 1.5 },
-  previewHint: { fontSize: "11px", color: "#94a3b8", margin: 0 },
-  previewCode: { backgroundColor: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", fontFamily: "monospace" },
-  code: { backgroundColor: "#f3f4f6", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontFamily: "monospace" },
+  previewBubbleTitle: { fontSize: "13px", fontWeight: 700, color: "#1e293b", margin: "0 0 2px 0" },
+  previewBubbleText: { fontSize: "13px", color: "#475569", margin: "0 0 6px 0", lineHeight: 1.4 },
+  previewHint: { fontSize: "11px", color: "#94a3b8", margin: 0, fontStyle: "italic" },
 };
 
